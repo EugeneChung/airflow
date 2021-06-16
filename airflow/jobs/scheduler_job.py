@@ -741,6 +741,7 @@ class SchedulerJob(BaseJob):  # pylint: disable=too-many-instance-attributes
         """Register signals that stop child processes"""
         signal.signal(signal.SIGINT, self._exit_gracefully)
         signal.signal(signal.SIGTERM, self._exit_gracefully)
+        signal.signal(signal.SIGUSR1, self._run_single_parsing_loop)
         signal.signal(signal.SIGUSR2, self._debug_dump)
 
     def _exit_gracefully(self, signum, frame) -> None:  # pylint: disable=unused-argument
@@ -749,6 +750,11 @@ class SchedulerJob(BaseJob):  # pylint: disable=too-many-instance-attributes
         if self.processor_agent:
             self.processor_agent.end()
         sys.exit(os.EX_OK)
+
+    def _run_single_parsing_loop(self, signum, frame):  # pylint: disable=unused-argument
+        self.log.info("Send dag parsing message to agent\n")
+        if self.processor_agent:
+            self.processor_agent.run_single_parsing_loop()
 
     def _debug_dump(self, signum, frame):  # pylint: disable=unused-argument
         try:
